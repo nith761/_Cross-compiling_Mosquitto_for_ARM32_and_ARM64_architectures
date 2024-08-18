@@ -1,0 +1,87 @@
+#!/bin/bash
+
+
+set -e
+
+
+function echo_message() {
+    echo -e "\n\033[1;32m$1\033[0m"
+}
+
+
+function check_dependencies() {
+    echo_message "Checking for necessary tools..."
+
+    for tool in git make cmake gcc openssl; do
+        if ! command -v $tool &>/dev/null; then
+            echo "Error: $tool is not installed. Please install it and rerun the script."
+            exit 1
+        fi
+    done
+}
+
+
+function setup_environment() {
+    echo_message "Setting up the environment..."
+
+    WORK_DIR=$(pwd)/mosquitto-cross-compile
+    mkdir -p "$WORK_DIR"
+    cd "$WORK_DIR"
+
+    if [ ! -d "mosquitto" ]; then
+        git clone https://github.com/eclipse/mosquitto.git
+    else
+        echo_message "Mosquitto repository already exists. Pulling the latest changes..."
+        cd mosquitto && git pull && cd ..
+    fi
+}
+
+
+function compile_arm32() {
+    echo_message "Cross compiling Mosquitto for ARM32..."
+
+    cd mosquitto
+    mkdir -p build_arm32 && cd build_arm32
+
+    cmake .. \
+        -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/arm32.cmake \
+        -DWITH_TLS=ON
+
+    make -j$(nproc)
+    cd ../..
+}
+
+
+function compile_arm64() {
+    echo_message "Cross compiling Mosquitto for ARM64..."
+
+    cd mosquitto
+    mkdir -p build_arm64 && cd build_arm64
+
+    cmake .. \
+        -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/arm64.cmake \
+        -DWITH_TLS=ON
+
+    make -j$(nproc)
+    cd ../..
+}
+
+
+function cleanup() {
+    echo_message "Cleaning up..."
+
+    rm -rf "$WORK_DIR"
+}
+
+
+function main() {
+    check_dependencies
+    setup_environment
+    compile_arm32
+    compile_arm64
+    cleanup
+    echo_message "Cross compilation completed successfully!"
+}
+
+
+main
