@@ -1,0 +1,1 @@
+The script automates the process of preparing the build environment, cloning and updating the Mosquitto repository, cross-compiling Mosquitto for ARM32 and ARM64 architectures, and cleaning up afterward.
